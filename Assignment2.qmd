@@ -1,0 +1,109 @@
+# ![](images/Screenshot%202024-10-07%20at%2012.51.33%20PM.png)
+
+# **Link to the Mock Marvel Character Survey:**
+
+\${l://SurveyLink?d=Take the Survey}
+
+Or copy and paste the URL below into your internet browser:\
+\${l://SurveyURL}
+
+Follow the link to opt out of future emails:
+
+# **Google Trend Data**
+
+```{r}
+
+
+# EPPS 6302: Google Trends data 
+# Sample program for using gtrendsR for collecting Google Trends data
+# Documentation: vignette("quickstart", package = "gtrendsR")
+# Website: https://cran.r-project.org/web/packages/gtrendsR/index.html
+# GitHub: https://github.com/PMassicotte/gtrendsR
+
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
+install.packages(c("tidyverse", "rvest", "gtrendsR"))
+
+## Install package
+install.packages("gtrendsR")
+
+## Load library and run gtrends
+library(gtrendsR)
+library(tidyverse)
+library(rvest)
+
+
+HarrisTrumpElection = gtrends(c("Trump","Harris","election"), time = "all")
+
+## Select data for plotting
+HarrisTrumpElection_interest <- HarrisTrumpElection$interest_over_time
+
+## Plot data
+par(family="Georgia")
+plot(HarrisTrumpElection_interest$hits, type="l")
+
+## Try another dataset?
+
+## Collect data by timeframe
+
+gtrends(c("Harris", "Trump"), time = "now 1-H") # last hour
+gtrends(c("Harris", "Trump"), time = "today 1-m") # last 30 days
+
+## Collect data by country
+
+tg_gb <- gtrends(c("immigrants"), geo = c("GB", "US"), time = "all") 
+
+## Check country codes
+ 
+data("countries")
+
+
+```
+
+## 1. Analyze the data
+
+The Trump and Harris election chart compares trends across three keywords to understand the popularity.
+
+We can see the peaks and troughs in search interest. The spikes possible correspond to a significant event for example debates or elections.
+
+```{r}
+## Try another dataset?
+
+# Install and load necessary libraries
+install.packages("gtrendsR")
+library(gtrendsR)
+
+# Set the CRAN repository mirror (this is fine if needed)
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
+
+# Collect data by timeframe
+
+# Request data for the last hour (use Sys.sleep to avoid rate limit issues)
+Sys.sleep(3) 
+gtrends_data_1h <- gtrends(c("Harris", "Trump"), time = "now 1-H") # Last hour
+
+Sys.sleep(3)  
+gtrends_data_1m <- gtrends(c("Harris", "Trump"), time = "today 1-m") # Last 30 days
+
+# Collect data by country (for "immigrants" in Great Britain and the United States)
+Sys.sleep(3)  
+tg_gb <- gtrends("immigrants", geo = "GB", time = "all")
+Sys.sleep(3)  
+tg_us <- gtrends("immigrants", geo = "US", time = "all")
+
+# Inspect the data (checking structure)
+str(tg_gb)
+str(tg_us)
+
+# Check available countries (useful for correct geo codes)
+data("countries")
+
+# If you want to examine the country codes further:
+head(countries)
+
+
+
+```
+
+1.  What is the difference between these two methods?
+
+    The first one is not region specific, while the second method includes geographic region information

@@ -1,0 +1,230 @@
+## Use rvest_wiki01.R to scrape Foreign reserve data
+
+```{r}
+## Workshop: Scraping webpages with R rvest package
+# Prerequisites: Chrome browser, Selector Gadget
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
+
+install.packages("tidyverse")
+library(tidyverse)
+install.packages("rvest")
+library(rvest)
+
+url <- 'https://en.wikipedia.org/wiki/List_of_countries_by_foreign-exchange_reserves'
+#Reading the HTML code from the Wiki website
+class(url)
+wikiforreserve <- read_html(url)
+class(wikiforreserve)
+
+## Get the XPath data using Inspect element feature in Safari, Chrome or Firefox
+## At Inspect tab, look for <table class=....> tag. Leave the table close
+## Right click the table and Copy --> XPath, paste at html_nodes(xpath =)
+
+foreignreserve <- wikiforreserve %>%
+  html_nodes(xpath='//*[@id="mw-content-text"]/div[1]/table[1]') %>%
+  html_table()
+class(foreignreserve) # Why the first column is not scrapped?
+
+fores = foreignreserve[[1]][,c(1, 2,3,4,5,6,7) ] # [[ ]] returns a single element directly, without retaining the list structure.
+
+
+# 
+names(fores) <- c("Country", "Forexreswithgold", "Date1", "Change1","Forexreswithoutgold", "Date2","Change2", "Sources")
+colnames(fores)
+
+head(fores$Country, n=10)
+class(fores$Date1)
+# Sources column useful?
+
+## Clean up variables
+## What type is Date?
+
+# Convert Date1 variable
+fores$Date1 = as.Date(fores$Date1, format = "%d %b %Y")
+class(fores$Date1)
+
+write.csv(fores, "fores.csv", row.names = FALSE) # use fwrite?
+
+
+## Chizoma's modified Code Script for Scraping Wikipedia Tables (Foreign Exchange Specific)
+
+install.packages("tidyverse")
+library(tidyverse)
+install.packages("rvest")
+library(rvest)
+
+# Hardcode URL for foreign exchange reserves page
+url <- 'https://en.wikipedia.org/wiki/List_of_countries_by_foreign-exchange_reserves'
+
+# Read the webpage
+wikidata <- read_html(url)
+
+# Extract all tables
+tables <- wikidata %>%
+  html_nodes("table") %>%
+  html_table(fill = TRUE)
+
+# Display the number of tables
+cat("Number of tables found:", length(tables), "\n")
+
+# Preview tables
+for (i in seq_along(tables)) {
+  cat("\nTable", i, ":\n")
+  print(head(tables[[i]], 3)) # Print first 3 rows as a preview
+}
+
+# Select the first table (foreign exchange reserves data)
+table_index <- 1
+selected_table <- tables[[table_index]]
+
+# Clean column names
+names(selected_table) <- c("Country", "ForexResWithGold", "Date1", "Change1",
+                           "ForexResWithoutGold", "Date2", "Change2", "Sources")
+
+# Optional: Additional cleanup for the "foreign exchange reserves" table
+selected_table <- selected_table[, c(1, 2, 3, 4, 5, 6, 7)]  # Drop "Sources" column
+
+# Convert Date1 column to proper date format
+selected_table$Date1 <- as.Date(selected_table$Date1, format = "%d %b %Y")
+
+# Display cleaned table
+print(head(selected_table))
+
+# Save to CSV
+filename <- "foreign_exchange_reserves"
+write.csv(selected_table, paste0(filename, ".csv"), row.names = FALSE)
+cat("Table saved as", paste0(filename, ".csv"))
+
+```
+
+1.  What type is Date: Date is representing dates without time
+
+2.  Why is the first column not scraped correctly? Incorrect merged cells
+
+### Search government documents
+
+```{r}
+## Scraping Government data
+## Website: GovInfo (https://www.govinfo.gov/app/search/)
+## Prerequisite: Download from website the list of files to be downloaded
+## Designed for background job
+
+# Start with a clean plate and lean loading to save memory
+
+gc(reset=T)
+
+#install.packages(c("purrr", "magrittr")
+library(purrr)
+library(magrittr) # Alternatively, load tidyverse
+
+## Set path for reading the listing and home directory
+## For Windows, use "c:\\directory\\subdirectory\\"
+## For Mac, "/Users/YOURNAME/path/"
+
+setwd("/Users/coparaji/datacollection.github.io")
+library(rjson)
+library(jsonlite)
+library(data.table)
+library(readr)
+
+## CSV method
+govfiles= read.csv(file="https://github.com/datageneration/datamethods/raw/refs/heads/master/webdata/govinfo-search-results-2024-10-13T07_10_42.csv", skip=2)
+
+## JSON method
+### rjson
+gf_list <- rjson::fromJSON(file ="https://github.com/datageneration/datamethods/raw/refs/heads/master/webdata/govinfo-search-results-2024-10-13T07_18_29.json")
+govfile2=dplyr::bind_rows(gf_list$resultSet)
+
+### jsonlite
+gf_list1 = jsonlite::read_json("https://github.com/datageneration/datamethods/raw/refs/heads/master/webdata/govinfo-search-results-2024-10-13T07_18_29.json")
+
+### Extract the list
+govfiles3 <- gf_list1$resultSet
+
+### One more step
+govfiles3 <- gf_list1$resultSet |> dplyr::bind_rows()
+
+
+# Preparing for bulk download of government documents
+govfiles$id = govfiles$packageId
+pdf_govfiles_url = govfiles$pdfLink
+pdf_govfiles_id <- govfiles$id
+
+# Directory to save the pdf's
+save_dir <- "/Users/coparaji/Downloads.pdf"
+
+# Function to download pdfs
+download_govfiles_pdf <- function(url, id) {
+  tryCatch({
+    destfile <- paste0(save_dir, "govfiles_", id, ".pdf")
+    download.file(url, destfile = destfile, mode = "wb") # Binary files
+    Sys.sleep(runif(1, 1, 3))  # Important: random sleep between 1 and 3 seconds to avoid suspicion of "hacking" the server
+    return(paste("Successfully downloaded:", url))
+  },
+  error = function(e) {
+    return(paste("Failed to download:", url))
+  })
+}
+
+# Download files, potentially in parallel for speed
+# Simple timer, can use package like tictoc
+# 
+
+## Try downloading one document
+start.time <- Sys.time()
+message("Starting downloads")
+results <- 1:1 %>% 
+  purrr::map_chr(~ download_govfiles_pdf(pdf_govfiles_url[.], pdf_govfiles_id[.]))
+message("Finished downloads")
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
+
+## Try all five
+start.time <- Sys.time()
+message("Starting downloads")
+results <- 1:length(pdf_govfiles_url) %>% 
+  purrr::map_chr(~ download_govfiles_pdf(pdf_govfiles_url[.], pdf_govfiles_id[.]))
+message("Finished downloads")
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
+
+# Print results
+print(results)
+
+
+## Exercise: Try downloading 118th Congress Congressional Hearings in Committee on Foreign Affairs?
+```
+
+## Download 10 documents
+
+1.  <https://www.govinfo.gov/content/pkg/CPRT-115SPRT23704/pdf/CPRT-115SPRT23704.pdf>
+
+2.  <https://www.govinfo.gov/content/pkg/CPRT-115SPRT28545/pdf/CPRT-115SPRT28545.pdf>
+
+3.  <https://www.govinfo.gov/content/pkg/CPRT-109JPRT25514/pdf/CPRT-109JPRT25514.pdf>
+
+4.  <https://www.govinfo.gov/content/pkg/CPRT-95JPRT20039OvIII/pdf/CPRT-95JPRT20039OvIII.pdf>
+
+5.  <https://www.govinfo.gov/content/pkg/CPRT-95JPRT20818OvI/pdf/CPRT-95JPRT20818OvI.pdf>
+
+6.  <https://www.govinfo.gov/content/pkg/CPRT-109JPRT25514/pdf/CPRT-109JPRT25514.pdf>
+
+7.  <https://www.govinfo.gov/content/pkg/CPRT-115SPRT28545/pdf/CPRT-115SPRT28545.pdf>
+
+8.  <https://www.govinfo.gov/content/pkg/CPRT-109JPRT25514/pdf/CPRT-109JPRT25514.pdf>
+
+9.  <https://www.govinfo.gov/content/pkg/CPRT-115SPRT28545/pdf/CPRT-115SPRT28545.pdf>
+
+10. <https://www.govinfo.gov/content/pkg/CPRT-115SPRT23704/pdf/CPRT-115SPRT23704.pdf>
+
+11. <https://www.govinfo.gov/content/pkg/CPRT-109JPRT25514/pdf/CPRT-109JPRT25514.pdf>
+
+12. <https://www.govinfo.gov/content/pkg/CPRT-115SPRT28545/pdf/CPRT-115SPRT28545.pdf>
+
+13. <https://www.govinfo.gov/content/pkg/CPRT-115SPRT23704/pdf/CPRT-115SPRT23704.pdf>\
+
+## Web scrapping Report
+
+Having different formats, for example in csv or json increases the complexity, especially when it comes to having different libraries with compatibility. In the Json structure there is additional parsing steps to convert into tabular formats. Any minor changes in the URL or data structure broke the web scrapping process, especially when trying to update. Lastly, the disk storage. Government data sets are saved in PDFs which can be large, you need adequate disk space prior. To help avoid challanges you can use APIs which is more reliable and stable than scrapping. For URL challenges one can look into automating updates for changing URLs

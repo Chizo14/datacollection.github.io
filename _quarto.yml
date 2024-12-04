@@ -1,0 +1,52 @@
+project:
+  type: website
+  
+website: 
+  title: "Chizoma Oparaji's Portfolio"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: about.qmd
+        text: About
+      - href: Coursework.qmd
+        text: Coursework
+      - href: Methods of Data Collection and Producion 
+      - text: "Methods of Data Collection and Production"
+        menu:
+          - href: Assignment1.qmd
+            text: "Assignment 1"
+          - href: Assignment2.qmd
+            text: "Assignment 2"
+          - href: Assignment3.qmd
+            text: "Assignment 3"
+          - href: Assignment4.qmd
+            text: "Assignment 4"
+          - href: Assignment5.qmd
+            text: "Assignment 5"
+      - href: Projects
+      - text: "Projects"
+        menu: 
+          - href: Epps 6302 Project Proposal.qmd
+            text: "Epps 6302 Project Proposal.pdf"
+      - href: Research.qmd
+        menu: 
+          - href: Final Paper.qmd
+            text: "Final Paper"
+
+
+       
+
+
+
+output:
+  html_document:
+    theme: pulse
+    css: styles.css
+    fontsize: 1.5em
+    mainfont: Open Sans 
+    monofont: Inconsolata
+    toc: true
+    
+editor: visual
+
